@@ -1,6 +1,12 @@
 {% extends 'base.html' %}
-
+<link rel="stylesheet" href="/css/style.css">
 {% block content %}
     <h1>{% block title %} Avaleht {% endblock %}</h1>
 {% endblock %}
-{% block body %}<p>Siin on avaleht</p>{% endblock %}
+{% block body %}
+    <p>Siin on avaleht</p>
+    <form class="search">
+    <label for="otsing">Otsi:</label><br>
+    <input type="text" class="search"><br>
+    </form>
+{% endblock %}
