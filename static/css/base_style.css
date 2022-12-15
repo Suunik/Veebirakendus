@@ -1,0 +1,39 @@
+body{
+    background: #cecece;
+}
+form.block {
+    display: block;
+    width: 50%;
+    height: fit-content;
+    padding: 10%;
+    margin: auto;
+    border: thin solid black;
+    border-radius: 30px;
+    background: #dddddd;
+}
+nav{
+    position: relative;
+    top: 1px;
+    list-style: none;
+    width: fit-content;
+    margin: auto;
+    border-top: thin solid black;
+}
+li{
+    float: left;
+}
+li a{
+    display: block;
+    padding: 8px;
+    background-color: #cecece;
+    text-align: center;
+    font-size: min(1.9vw, 1.2em);
+    text-decoration: none;
+
+}
+li a:hover{
+    background-color: #dddddd;
+}
+li a:visited{
+    color: black;
+}

@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>{% block title %} {% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="static/css/base_style.css">
+{% block head %}{% endblock %}
 </head>
 <body>
 <nav>
@@ -12,6 +13,8 @@
     <li><a href="{{ url_for('osaühingu_andmete_vaade') }}">Osaühingu andmete vaade</a></li>
     <li><a href="{{ url_for('osaühingu_asutamise_vorm') }}">Osaühingu asutamise vorm</a></li>
 </nav>
-{% block body %}{% endblock %}
+<form class="block">
+{% block form %}{% endblock %}
+</form>
 </body>
 </html>

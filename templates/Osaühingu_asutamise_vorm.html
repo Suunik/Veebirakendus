@@ -3,6 +3,27 @@
 {% block content %}
     <h1>{% block title %} Osaühingu asutamise vorm {% endblock %}</h1>
 {% endblock %}
-{% block body %}
-    <p>siin on asutamise vorm</p>
+{% block head %}
+    <link rel="stylesheet" href="static/css/asutamise_vorm_style.css">
+{% endblock %}
+{% block form %}
+    <label for="search" class="input-label">Osaühingu nimi:</label><br>
+    <input type="text"><br>
+
+    <label for="search" class="input-label">Registrikood:</label><br>
+    <input type="text"><br>
+
+    <label for="search" class="input-label">Asutamise kuupäev:</label><br>
+    <input type="text"><br>
+
+    <label for="search" class="input-label">Kogukapitali suurus:</label><br>
+    <input type="text"><br>
+
+    <label for="search" class="input-label">Osanik:</label><br>
+    <input type="text"><br>
+
+    <label for="search" class="input-label">Osaniku osa suurus:</label><br>
+    <input type="text"><br>
+
+    <button>Salvesta</button>
 {% endblock %}
