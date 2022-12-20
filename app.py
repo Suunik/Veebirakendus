@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 
 @app.route('/')
-def avaleht():  # put application's code here
+def avaleht():
     return render_template("avaleht.html")
 
 
