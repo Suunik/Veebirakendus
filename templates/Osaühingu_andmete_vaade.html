@@ -3,9 +3,47 @@
 {% block content %}
     <h1>{% block title %} Osaühingu andmete vaade {% endblock %}</h1>
 {% endblock %}
+
 {% block head %}
     <link rel="stylesheet" href="static/css/andmete_vaade_style.css">
 {% endblock %}
+
+{% block nav %}
+    <li><a href="{{ url_for('main_page') }}">Avaleht</a></li>
+    <li><a href="{{ url_for('company_founding_form') }}">Osaühingu asutamise vorm</a></li>
+{% endblock %}
+
 {% block form %}
-    <p>siin on andmete vaade</p>
+    <table>
+        <tr>
+            <th>Ettevõtte nimi:</th>
+            <th>Registrikood:</th>
+            <th>Asutamiskuupäev:</th>
+            <th>Kogukapital:</th>
+        </tr>
+        <tr>
+            <td>{{ company['company_name'] }}</td>
+            <td>{{ company['registry_code'] }}</td>
+            <td>{{ company['start_date'] }}</td>
+            <td>{{ company['total_capital'] }}€</td>
+        </tr>
+    </table>
+    <h4>Osanikud:</h4>
+    <table>
+        <tr>
+            <th>Nimi</th>
+            <th>Isikukood</th>
+            <th>Osaniku suurus</th>
+            <th>Asutaja</th>
+        </tr>
+    {% for person in company['shareholders'] %}
+        <tr>
+            <td>{{ person['first_name'] }} {{ person['last_name'] }}</td>
+            <td>{{ person['id_code'] }}</td>
+            <td>{{ person['share'] }}€</td>
+            <td>{{ person['founder'] }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+    </form>
 {% endblock %}

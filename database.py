@@ -27,7 +27,7 @@ def random_date(start, end, prop):
     return str_time_prop(start, end, '%d/%m/%Y', prop)
 
 
-def create_person_table(database_name: str):
+def create_people_table(database_name: str):
     """
     Create person database with 100 persons inside it.
 
@@ -96,7 +96,6 @@ def create_company_table(database_name: str):
 
 def create_shareholder_table(database_name: str):
     """Create shareholder database."""
-    # create both person and company databases to tie together.
     conn = sqlite3.connect(database_name)
     cursor = conn.cursor()
 
@@ -104,7 +103,8 @@ def create_shareholder_table(database_name: str):
     cursor.execute("""CREATE TABLE shareholder(
                             company_id INTEGER,
                             person_id INTEGER,
-                            capital_share INTEGER           
+                            capital_share INTEGER,
+                            founder INTEGER
                             )""")
 
     cursor.execute("""SELECT rowid FROM people""")
@@ -121,11 +121,11 @@ def create_shareholder_table(database_name: str):
         person1_share = random.randint(1250, 10000)
         person2_share = random.randint(1250, 10000)
         # create a list of shareholders with two members
-        shareholders = [(company_id[0], person_id, person1_share),
-                        (company_id[0], person_id + 1, person2_share)
+        shareholders = [(company_id[0], person_id, person1_share, 1),
+                        (company_id[0], person_id + 1, person2_share, 1)
                         ]
         # insert data into the table
-        cursor.executemany("INSERT INTO shareholder VALUES (?,?,?)", shareholders)
+        cursor.executemany("INSERT INTO shareholder VALUES (?,?,?,?)", shareholders)
         conn.commit()
 
         # add 2 to the person_id variable for each person inserted
@@ -170,7 +170,57 @@ def create_database(database_name: str):
     Where shareholder table binds them together and holds information about which person
     is shareholder at which company with how much shares in euros.
     """
-    create_person_table(database_name)
+    create_people_table(database_name)
     create_company_table(database_name)
     create_shareholder_table(database_name)
     add_company_total_capital()
+
+
+def get_company_data(database_name: str, company_id: int):
+    """
+    Get company database from given database name.
+
+    Convert the data to dictionary with all the information.
+
+    Keys: company_name, registry_code, start_date, total_capital, shareholders
+
+    Shareholders key consists of dictionaries.
+
+    Shareholders keys: first_name, last_name, id_code, founder
+    """
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+
+    # get company data from company table, make a dictionary with the data
+    company_data = cursor.execute(f'SELECT * FROM company WHERE rowid = ?',
+                        (company_id,)).fetchone()
+
+    data = {"company_name": company_data[0], "registry_code": company_data[1],
+            "start_date": company_data[2], "total_capital": company_data[3]}
+
+    # get shareholder data from shareholder table ( find person(s) tied with the company_id )
+    shareholders = conn.execute(f'SELECT * FROM shareholder WHERE company_id = ?',
+                        (company_id,)).fetchall()
+
+    # finally get rowid's from shareholder data to get the information about shareholders.
+    # add shareholder info to data dict as an additional dictionary.
+    shareholders_data = []
+    for person in shareholders:
+        cursor.execute(f'SELECT * FROM people WHERE rowid = {person[1]}')
+        person_data = cursor.fetchall()
+        person_dict = {}
+        person_dict['first_name'] = person_data[0][0]
+        person_dict['last_name'] = person_data[0][1]
+        person_dict['id_code'] = person_data[0][2]
+        # person[3] is a slot in shareholder table that holds
+        # information if person was the founder of the company (1) or not (0)
+        person_dict['founder'] = 'Jah' if person[3] == 1 else 'Ei'
+        person_dict['share'] = person[2]
+        shareholders_data.append(person_dict)
+    data['shareholders'] = shareholders_data
+
+    conn.close()
+    return data
+
+
+print(get_company_data('database.db', 5))

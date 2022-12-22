@@ -1,4 +1,22 @@
 p{
     border: thin solid black;
-    margin-top: 70%
+    background: white;
+    width: 40%;
+    margin-top: 5px;
+}
+
+h4{
+    margin-bottom: 0;
+}
+table {
+    margin-top: 5px;
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid black;
+    text-align: left;
+    padding: 8px;
 }

@@ -3,9 +3,15 @@
 {% block content %}
     <h1>{% block title %} Osaühingu asutamise vorm {% endblock %}</h1>
 {% endblock %}
+
 {% block head %}
     <link rel="stylesheet" href="static/css/asutamise_vorm_style.css">
 {% endblock %}
+
+{% block nav %}
+    <li><a href="{{ url_for('main_page') }}">Avaleht</a></li>
+{% endblock %}
+
 {% block form %}
     <label for="search" class="input-label">Osaühingu nimi:</label><br>
     <input type="text"><br>

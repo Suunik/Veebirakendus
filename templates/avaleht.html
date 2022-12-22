@@ -1,11 +1,19 @@
 {% extends 'base.html' %}
 <link rel="stylesheet" href="/css/avaleht_style.css">
+
 {% block content %}
     <h1>{% block title %} Avaleht {% endblock %}</h1>
 {% endblock %}
+
 {% block head %}
     <link rel="stylesheet" href="static/css/avaleht_style.css">
 {% endblock %}
+
+{% block nav %}
+    <li><a href="{{ url_for('company_founding_form') }}">Osaühingu asutamise vorm</a></li>
+    <li><a href="{{ url_for('company_data_view') }}">Osaühingu andmete vaade</a></li>
+{% endblock %}
+
 {% block form %}
     <label for="search">Otsi:</label><br>
     <input type="text" class="search"><br>
