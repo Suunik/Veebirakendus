@@ -176,6 +176,59 @@ def create_database(database_name: str):
     add_company_total_capital()
 
 
+def search_ids(database_name: str, search: str, table: str):
+    """Get companies or persons id from given search string inside given table."""
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+
+    if table == 'company':
+        column_name = 'company_name'
+    elif table == 'people':
+        column_name = 'first_name OR last_name'
+    else:
+        print("wrong table name")
+        return
+    cursor.execute(f"SELECT rowid FROM {table} WHERE {column_name} LIKE '%{search}%'")
+    data = cursor.fetchall()
+    return data
+
+
+def get_person_shareholder_data(database_name: str, person_id: int):
+    """Get all the companies the person is shareholder in."""
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT * FROM shareholder WHERE person_id = {person_id}")
+    shareholder_data = cursor.fetchall()
+    list_of_companies = []
+    # loop through every company the person is shareholder in
+    for data in shareholder_data:
+        dict_of_companies = {}
+        # get company data from the current company id
+        company_data = get_company_data(database_name, data[0])
+        # add company name and id to a dict
+        dict_of_companies['company_name'] = company_data['company_name']
+        dict_of_companies['id'] = company_data['id']
+        # then add the dict to a list
+        list_of_companies.append(dict_of_companies)
+    return list_of_companies
+
+
+def get_person_data_from_id(database_name: str, person_id: int):
+    """Get person name from person_id."""
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT * FROM people WHERE rowid = {person_id}")
+    # get the persons data
+    data = cursor.fetchall()
+    # get all the companies person is shareholder in
+    shareholder_data = get_person_shareholder_data(database_name, person_id)
+    # add it to a dict
+    person_data = {'first_name': data[0][0], 'last_name': data[0][1],
+                   'id_code': data[0][2], 'companies': shareholder_data}
+    return person_data
+
+
 def get_company_data(database_name: str, company_id: int):
     """
     Get company database from given database name.
@@ -192,11 +245,12 @@ def get_company_data(database_name: str, company_id: int):
     cursor = conn.cursor()
 
     # get company data from company table, make a dictionary with the data
-    company_data = cursor.execute(f'SELECT * FROM company WHERE rowid = ?',
+    company_data = cursor.execute(f'SELECT *, rowid FROM company WHERE rowid = ?',
                         (company_id,)).fetchone()
 
     data = {"company_name": company_data[0], "registry_code": company_data[1],
-            "start_date": company_data[2], "total_capital": company_data[3]}
+            "start_date": company_data[2], "total_capital": company_data[3], 'id': company_data[4]}
+
 
     # get shareholder data from shareholder table ( find person(s) tied with the company_id )
     shareholders = conn.execute(f'SELECT * FROM shareholder WHERE company_id = ?',
@@ -221,3 +275,6 @@ def get_company_data(database_name: str, company_id: int):
 
     conn.close()
     return data
+
+
+print(get_person_data_from_id('database.db', 4))

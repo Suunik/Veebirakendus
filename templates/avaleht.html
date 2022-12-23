@@ -11,10 +11,52 @@
 
 {% block nav %}
     <li><a href="{{ url_for('company_founding_form') }}">Osaühingu asutamise vorm</a></li>
-    <li><a href="{{ url_for('company_data_view') }}">Osaühingu andmete vaade</a></li>
 {% endblock %}
 
 {% block form %}
     <label for="search">Otsi:</label><br>
-    <input type="text" class="search"><br>
+    {% if search == "" %}
+        <input name="search" class="search" type="text"
+               autocomplete="off"
+               placeholder="Sisestage ettevõtte või isiku nimi või registrikood/isikukood"><br>
+    {% else %}
+        <input name="search" class="search" type="text" autocomplete="off" placeholder={{ search }}><br>
+    {% endif %}
+    <table>
+        {% if companies | length != 0 %}
+            <h4>Otsingutulemused:</h4>
+            <tr>
+                <th>Ettevõtte nimi:</th>
+                <th>Registrikood:</th>
+                <th></th>
+            </tr>
+            {% for company in companies %}
+                <tr>
+                    <td>{{ company['company_name'] }}</td>
+                    <td>{{ company['registry_code'] }}</td>
+                    <td><button><a href="{{ url_for('company_data_view', id=company['id'])}}">Vaata</a></button></td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </table>
+    <table>
+        {% if people | length != 0 %}
+            <tr>
+                <th>Nimi</th>
+                <th>Isikukood</th>
+                <th>Ettevõtted</th>
+                <th></th>
+            </tr>
+            {% for person in people %}
+                <tr>
+                    <td>{{ person['first_name'] }} {{ person['last_name'] }}</td>
+                    <td>{{ person['id_code'] }}</td>
+                    {% for company in person['companies'] %}
+                        <td>{{ company['company_name'] }}</td>
+                        <td><button><a href="{{ url_for('company_data_view', id=company['id'])}}">Vaata</a></button></td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </table>
 {% endblock %}
