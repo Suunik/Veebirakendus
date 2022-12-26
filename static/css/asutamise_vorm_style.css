@@ -8,3 +8,14 @@ input{
 button{
     margin-top:14px
 }
+table {
+    margin-top: 5px;
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+td, th {
+    border: 1px solid black;
+    text-align: left;
+    padding: 8px;
+}

@@ -13,23 +13,56 @@
 {% endblock %}
 
 {% block form %}
-    <label for="search" class="input-label">Osaühingu nimi:</label><br>
-    <input type="text"><br>
+    <form method="post" id="company_data">
+        <label for="company_name" class="input-label">Osaühingu nimi:</label><br>
+        <input type="text" name="company_name"><br>
 
-    <label for="search" class="input-label">Registrikood:</label><br>
-    <input type="text"><br>
+        <label for="registry_code" class="input-label">Registrikood:</label><br>
+        <input type="text" name="registry_code"><br>
 
-    <label for="search" class="input-label">Asutamise kuupäev:</label><br>
-    <input type="text"><br>
+        <label for="start_date" class="input-label">Asutamise kuupäev:</label><br>
+        <input type="text" name="start_date"><br>
 
-    <label for="search" class="input-label">Kogukapitali suurus:</label><br>
-    <input type="text"><br>
+        <label for="total_capital" class="input-label">Kogukapitali suurus:</label><br>
+        <input type="text" name="total_capital"><br>
 
-    <label for="search" class="input-label">Osanik:</label><br>
-    <input type="text"><br>
+    </form>
 
-    <label for="search" class="input-label">Osaniku osa suurus:</label><br>
-    <input type="text"><br>
+    <h4>Osanikud:</h4>
 
-    <button>Salvesta</button>
+    <form method="post" id="company_data">
+        <label for="first_name" class="input-label">Eesnimi:</label><br>
+        <input type="text" name="first_name"><br>
+
+        <label for="last_name" class="input-label">Perekonnanimi:</label><br>
+        <input type="text" name="last_name"><br>
+
+        <label for="id_code" class="input-label">Isikukood:</label><br>
+        <input type="text" name="id_code"><br>
+
+        <label for="capital_share" class="input-label">Osaniku osa suurus:</label><br>
+        <input type="text" name="capital_share"><br>
+
+        <button type="submit">Lisa osanik</button>
+
+    </form>
+    <table>
+        {% if person_data | length != 0 %}
+        <tr>
+            <th>Eesnimi</th>
+            <th>Perekonnanimi</th>
+            <th>Isikukood</th>
+            <th>Osaniku osa</th>
+        </tr>
+            {% for person in person_data %}
+                <tr>
+                    <td>{{ person['first_name'] }}</td>
+                    <td>{{ person['last_name'] }}</td>
+                    <td>{{ person['id_code'] }}</td>
+                    <td>{{ person['capital_share'] }}€</td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </table>
+    <button type="submit" form="company_data">Asuta osaühing</button>
 {% endblock %}

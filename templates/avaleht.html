@@ -14,7 +14,8 @@
 {% endblock %}
 
 {% block form %}
-    <label for="search">Otsi:</label><br>
+    <form method="post">
+         <label for="search">Otsi:</label><br>
     {% if search == "" %}
         <input name="search" class="search" type="text"
                autocomplete="off"
@@ -59,4 +60,5 @@
             {% endfor %}
         {% endif %}
     </table>
+    </form>
 {% endblock %}

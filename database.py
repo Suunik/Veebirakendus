@@ -275,6 +275,3 @@ def get_company_data(database_name: str, company_id: int):
 
     conn.close()
     return data
-
-
-print(get_person_data_from_id('database.db', 4))

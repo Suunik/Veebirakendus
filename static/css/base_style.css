@@ -1,7 +1,7 @@
 body{
     background: #cecece;
 }
-form.block {
+div.block {
     display: block;
     width: 50%;
     height: fit-content;
@@ -29,7 +29,6 @@ li a{
     text-align: center;
     font-size: min(1.9vw, 1.2em);
     text-decoration: none;
-
 }
 li a:hover{
     background-color: #dddddd;

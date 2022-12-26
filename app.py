@@ -5,6 +5,11 @@ import database
 app = Flask(__name__)
 database_name = 'database.db'
 
+# used in company founding form
+# need to keep all the founder data before submitting company data
+person_data = []
+
+
 @app.route('/', methods=["GET", "POST"])
 def main_page():
     companies = []
@@ -32,9 +37,12 @@ def company_data_view():
     return render_template("Osaühingu_andmete_vaade.html", company=company_data)
 
 
-@app.route('/Osaühingu_asutamise_vorm')
+@app.route('/Osaühingu_asutamise_vorm', methods=["GET", "POST"])
 def company_founding_form():
-    return render_template("Osaühingu_asutamise_vorm.html")
+    if request.method == "POST":
+        person_data.append(dict(request.form))
+    print(person_data)
+    return render_template("Osaühingu_asutamise_vorm.html", person_data=person_data)
 
 
 if __name__ == '__main__':
