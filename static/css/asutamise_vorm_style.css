@@ -19,3 +19,6 @@ td, th {
     text-align: left;
     padding: 8px;
 }
+p.flash-message{
+    color: red;
+}

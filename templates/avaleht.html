@@ -52,11 +52,17 @@
                 <tr>
                     <td>{{ person['first_name'] }} {{ person['last_name'] }}</td>
                     <td>{{ person['id_code'] }}</td>
-                    {% for company in person['companies'] %}
-                        <td>{{ company['company_name'] }}</td>
-                        <td><button><a href="{{ url_for('company_data_view', id=company['id'])}}">Vaata</a></button></td>
-                    {% endfor %}
+                    <td>{{ person['companies'][0]['company_name'] }}</td>
+                    <td><button><a href="{{ url_for('company_data_view', id=person['companies'][0]['id'])}}">Vaata</a></button></td>
                 </tr>
+                    {% for company in person['companies'][1:] %}
+                        </tr>
+                            <td></td>
+                            <td></td>
+                            <td>{{ company['company_name'] }}</td>
+                            <td><button><a href="{{ url_for('company_data_view', id=company['id'])}}">Vaata</a></button></td>
+                        </tr>
+                    {% endfor %}
             {% endfor %}
         {% endif %}
     </table>

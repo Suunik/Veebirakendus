@@ -13,35 +13,46 @@
 {% endblock %}
 
 {% block form %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class=flashes>
+                {% for message in messages %}
+                    <p class="flash-message">{{ message }}</p>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
     <form method="post" id="company_data">
         <label for="company_name" class="input-label">Osaühingu nimi:</label><br>
-        <input type="text" name="company_name"><br>
+        <input type="text" name="company_name" value="{{ company_data['company_name'] }}"
+               required minlength="3" maxlength="100"><br>
 
         <label for="registry_code" class="input-label">Registrikood:</label><br>
-        <input type="text" name="registry_code"><br>
+        <input type="number" name="registry_code" value="{{ company_data['registry_code'] }}"
+               required min="1000000" max="9999999"><br>
 
         <label for="start_date" class="input-label">Asutamise kuupäev:</label><br>
-        <input type="text" name="start_date"><br>
+        <input type="date" name="start_date" value="{{ today_date }}" value="{{ company_data['start_date'] }}"
+               required max="{{ today_date }}"><br>
 
         <label for="total_capital" class="input-label">Kogukapitali suurus:</label><br>
-        <input type="text" name="total_capital"><br>
+        <input type="number" name="total_capital" value="{{ company_data['total_capital'] }}"
+               required min="2500"><br>
 
-    </form>
+        <h4>Osanikud:</h4>
 
-    <h4>Osanikud:</h4>
-
-    <form method="post" id="company_data">
         <label for="first_name" class="input-label">Eesnimi:</label><br>
-        <input type="text" name="first_name"><br>
+        <input type="text" name="first_name" minlength="3"><br>
 
         <label for="last_name" class="input-label">Perekonnanimi:</label><br>
-        <input type="text" name="last_name"><br>
+        <input type="text" name="last_name" minlength="3"><br>
 
         <label for="id_code" class="input-label">Isikukood:</label><br>
-        <input type="text" name="id_code"><br>
+        <input type="number" name="id_code" min="10000000000" max="99999999999"><br>
 
         <label for="capital_share" class="input-label">Osaniku osa suurus:</label><br>
-        <input type="text" name="capital_share"><br>
+        <input type="number" name="capital_share" min="1"><br>
 
         <button type="submit">Lisa osanik</button>
 
@@ -64,5 +75,7 @@
             {% endfor %}
         {% endif %}
     </table>
-    <button type="submit" form="company_data">Asuta osaühing</button>
+    <!-- This sends the final company data and "submit" key to the flask application -->
+    <!-- So we can add the data to database -->
+    <button type="submit" form="company_data" name="submit" value="{{ company_data }}">Asuta osaühing</button>
 {% endblock %}

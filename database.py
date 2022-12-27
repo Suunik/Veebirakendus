@@ -41,7 +41,8 @@ def create_people_table(database_name: str):
     cursor.execute("""CREATE TABLE people(
                                     first_name TEXT,
                                     last_name TEXT,
-                                    id_code INTEGER
+                                    id_code INTEGER,
+                                    UNIQUE(id_code)
                         )""")
 
      # get a list of names from text files as tuples
@@ -77,7 +78,8 @@ def create_company_table(database_name: str):
                                 company_name TEXT,
                                 registry_code INTEGER,
                                 start_date DATE,
-                                total_capital INTEGER
+                                total_capital INTEGER,
+                                UNIQUE(registry_code)
                     )""")
 
     company_data = []
@@ -124,8 +126,10 @@ def create_shareholder_table(database_name: str):
         shareholders = [(company_id[0], person_id, person1_share, 1),
                         (company_id[0], person_id + 1, person2_share, 1)
                         ]
+
         # insert data into the table
-        cursor.executemany("INSERT INTO shareholder VALUES (?,?,?,?)", shareholders)
+        for shareholder in shareholders:
+            cursor.execute("INSERT INTO shareholder VALUES (?,?,?,?)", shareholder)
         conn.commit()
 
         # add 2 to the person_id variable for each person inserted
@@ -180,17 +184,47 @@ def search_ids(database_name: str, search: str, table: str):
     """Get companies or persons id from given search string inside given table."""
     conn = sqlite3.connect(database_name)
     cursor = conn.cursor()
-
+    # find out what table we are searching and execute the right command
     if table == 'company':
-        column_name = 'company_name'
+        cursor.execute(f"SELECT rowid FROM {table} WHERE company_name LIKE '%{search}%'")
     elif table == 'people':
-        column_name = 'first_name OR last_name'
+        cursor.execute(f"SELECT rowid FROM {table} WHERE (first_name LIKE '%{search}%' OR last_name LIKE '%{search}%')")
     else:
         print("wrong table name")
         return
-    cursor.execute(f"SELECT rowid FROM {table} WHERE {column_name} LIKE '%{search}%'")
     data = cursor.fetchall()
-    return data
+
+    id_list = []
+    for id in data:
+        id_list.append(id[0])
+    return id_list
+
+
+def search_ids_from_numbers(database_name: str, search: str):
+    """
+    Get companies or persons id from given search string(numbers).
+
+    7 numbers mean that we are looking for companyd ids
+    11 number mean that we are looking for person ids
+    """
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+
+    # find out what table we are searching and execute the right command
+    if len(search) == 7:
+        cursor.execute(f"SELECT rowid FROM company WHERE registry_code = {search}")
+    elif len(search) == 11:
+        cursor.execute(f"SELECT rowid FROM people WHERE id_code = {search}")
+    else:
+        print("wrong number length")
+        return
+    data = cursor.fetchall()
+
+    print(data)
+    id_list = []
+    for id in data:
+        id_list.append(id[0])
+    return id_list
 
 
 def get_person_shareholder_data(database_name: str, person_id: int):
@@ -218,7 +252,7 @@ def get_person_data_from_id(database_name: str, person_id: int):
     """Get person name from person_id."""
     conn = sqlite3.connect(database_name)
     cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM people WHERE rowid = {person_id}")
+    cursor.execute(f"SELECT * FROM people WHERE rowid={person_id}")
     # get the persons data
     data = cursor.fetchall()
     # get all the companies person is shareholder in
@@ -231,7 +265,7 @@ def get_person_data_from_id(database_name: str, person_id: int):
 
 def get_company_data(database_name: str, company_id: int):
     """
-    Get company database from given database name.
+    Get company data from given database name.
 
     Convert the data to dictionary with all the information.
 
@@ -275,3 +309,45 @@ def get_company_data(database_name: str, company_id: int):
 
     conn.close()
     return data
+
+
+def add_company_to_database(database_name: str, company_data: dict):
+    """Add data to database"""
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+
+    # first add company data to database
+    company_tuple = (company_data['company_name'], company_data['registry_code'],
+                     company_data['start_date'], company_data['total_capital'])
+
+    cursor.execute("INSERT OR IGNORE INTO company VALUES (?,?,?,?)", company_tuple)
+
+    # add persons to person table and remember their id_codes and capital shares ( used in shareholder table )
+    id_codes = []
+    capital_shares = []
+    for person in company_data['founders']:
+        id_codes.append(person['id_code'])
+        capital_shares.append(person['capital_share'])
+        person_tuple = (person['first_name'], person['last_name'], person['id_code'])
+        cursor.execute("INSERT OR IGNORE INTO people VALUES (?,?,?)", person_tuple)
+    conn.commit()
+
+    # update shareholder data
+
+    # get company rowid using company registry code ( should be unique for every company )
+    cursor.execute(f"SELECT rowid FROM company WHERE registry_code = {company_data['registry_code']}")
+    company_id = cursor.fetchone()
+
+    # get person rowid's using person id_code
+    # use different queries depending on the amound of id's
+    if len(id_codes) > 1:
+        cursor.execute(f"SELECT rowid FROM people WHERE id_code in {tuple(id_codes)}")
+    else:
+        cursor.execute(f"SELECT rowid FROM people WHERE id_code = {id_codes[0]}")
+    person_ids = cursor.fetchall()
+
+    for index, id in enumerate(person_ids):
+        shareholder_data = (int(company_id[0]), id[0], capital_shares[index], 1)
+        cursor.execute(f"INSERT INTO shareholder VALUES (?,?,?,?)", shareholder_data)
+    conn.commit()
+    conn.close()
