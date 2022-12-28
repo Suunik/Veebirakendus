@@ -104,9 +104,10 @@ def create_shareholder_table(database_name: str):
     cursor.execute("""DROP TABLE IF EXISTS shareholder""")
     cursor.execute("""CREATE TABLE shareholder(
                             company_id INTEGER,
-                            person_id INTEGER,
+                            shareholder_id INTEGER,
                             capital_share INTEGER,
-                            founder INTEGER
+                            founder INTEGER,
+                            legal_person
                             )""")
 
     cursor.execute("""SELECT rowid FROM people""")
@@ -123,13 +124,13 @@ def create_shareholder_table(database_name: str):
         person1_share = random.randint(1250, 10000)
         person2_share = random.randint(1250, 10000)
         # create a list of shareholders with two members
-        shareholders = [(company_id[0], person_id, person1_share, 1),
-                        (company_id[0], person_id + 1, person2_share, 1)
+        shareholders = [(company_id[0], person_id, person1_share, 1, 0),
+                        (company_id[0], person_id + 1, person2_share, 1, 0)
                         ]
 
         # insert data into the table
         for shareholder in shareholders:
-            cursor.execute("INSERT INTO shareholder VALUES (?,?,?,?)", shareholder)
+            cursor.execute("INSERT INTO shareholder VALUES (?,?,?,?,?)", shareholder)
         conn.commit()
 
         # add 2 to the person_id variable for each person inserted
@@ -227,24 +228,28 @@ def search_ids_from_numbers(database_name: str, search: str):
     return id_list
 
 
-def get_person_shareholder_data(database_name: str, person_id: int):
+def get_shareholder_data(database_name: str, shareholder_id: int, legal_person: bool):
     """Get all the companies the person is shareholder in."""
     conn = sqlite3.connect(database_name)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT * FROM shareholder WHERE person_id = {person_id}")
+    if not legal_person:
+        cursor.execute(f"SELECT * FROM shareholder WHERE (shareholder_id, legal_person) = ({shareholder_id}, 0)")
+    if legal_person:
+        cursor.execute(f"SELECT * FROM shareholder WHERE (shareholder_id, legal_person) = ({shareholder_id}, 1)")
     shareholder_data = cursor.fetchall()
     list_of_companies = []
     # loop through every company the person is shareholder in
     for data in shareholder_data:
-        dict_of_companies = {}
+        # means that it is a person not legal person and we can add the company to list
+        dict_of_company = {}
         # get company data from the current company id
         company_data = get_company_data(database_name, data[0])
         # add company name and id to a dict
-        dict_of_companies['company_name'] = company_data['company_name']
-        dict_of_companies['id'] = company_data['id']
+        dict_of_company['company_name'] = company_data['company_name']
+        dict_of_company['id'] = company_data['id']
         # then add the dict to a list
-        list_of_companies.append(dict_of_companies)
+        list_of_companies.append(dict_of_company)
     return list_of_companies
 
 
@@ -256,11 +261,25 @@ def get_person_data_from_id(database_name: str, person_id: int):
     # get the persons data
     data = cursor.fetchall()
     # get all the companies person is shareholder in
-    shareholder_data = get_person_shareholder_data(database_name, person_id)
+    shareholder_data = get_shareholder_data(database_name, person_id, False)
     # add it to a dict
     person_data = {'first_name': data[0][0], 'last_name': data[0][1],
                    'id_code': data[0][2], 'companies': shareholder_data}
     return person_data
+
+
+def get_legal_person_data_from_id(database_name: str, legal_person_id: int):
+    """Get person name from person_id."""
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT * FROM company WHERE rowid={legal_person_id}")
+    # get the persons data
+    data = cursor.fetchall()
+    # get all the companies person is shareholder in
+    shareholder_data = get_shareholder_data(database_name, legal_person_id, True)
+    # add it to a dict
+    legal_person_data = {'company_name': data[0][0], 'registry_code': data[0][2], 'companies': shareholder_data}
+    return legal_person_data
 
 
 def get_company_data(database_name: str, company_id: int):
@@ -301,7 +320,7 @@ def get_company_data(database_name: str, company_id: int):
         person_dict['last_name'] = person_data[0][1]
         person_dict['id_code'] = person_data[0][2]
         # person[3] is a slot in shareholder table that holds
-        # information if person was the founder of the company (1) or not (0)
+        # if person was the founder of the company (1) or not (0)
         person_dict['founder'] = 'Jah' if person[3] == 1 else 'Ei'
         person_dict['share'] = person[2]
         shareholders_data.append(person_dict)
@@ -351,3 +370,6 @@ def add_company_to_database(database_name: str, company_data: dict):
         cursor.execute(f"INSERT INTO shareholder VALUES (?,?,?,?)", shareholder_data)
     conn.commit()
     conn.close()
+
+
+print(get_shareholder_data('database.db', 4, False))

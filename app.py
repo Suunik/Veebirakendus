@@ -16,13 +16,13 @@ founder_data = []
 def main_page():
     companies = []
     people = []
+    legal_people = []
     search = ""
     if request.method == "POST":
         # first get the IDs of all the companies and people that the search finds.
         search = dict(request.form)['search']
         company_ids = []
         people_ids = []
-
         # find ids from numbers
         if search.isnumeric():
             if len(search) == 7:
@@ -37,10 +37,14 @@ def main_page():
         # then make a list of all the companies and people
         for company_id in company_ids:
             companies.append(database.get_company_data(database_name, company_id))
+            legal_person_data = database.get_legal_person_data_from_id(database_name, company_id)
+            # dont display legal people that are not a shareholder in any companies
+            if not legal_person_data['companies']:
+                continue
+            legal_people.append(legal_person_data)
         for person_id in people_ids:
             people.append(database.get_person_data_from_id(database_name, person_id))
-
-    return render_template("avaleht.html", companies=companies, people=people, search=search)
+    return render_template("avaleht.html", companies=companies, people=people, search=search, legal_people=legal_people)
 
 
 @app.route('/Osaühingu_andmete_vaade', methods=['GET'])
@@ -69,7 +73,7 @@ def company_founding_form():
             total_founder_share = 0
             for founder in founder_data:
                 total_founder_share += int(founder['capital_share'])
-
+            # if not, flash an error
             if total_founder_share != int(company_data['total_capital']):
                 flash('Osanike kapital ei ole võrdne ettevõtte kapitaliga')
             elif not founder_data:

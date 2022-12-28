@@ -25,7 +25,7 @@
     {% endif %}
     <table>
         {% if companies | length != 0 %}
-            <h4>Otsingutulemused:</h4>
+            <h4>Ettevõtted:</h4>
             <tr>
                 <th>Ettevõtte nimi:</th>
                 <th>Registrikood:</th>
@@ -42,6 +42,7 @@
     </table>
     <table>
         {% if people | length != 0 %}
+            <h4>Füüsilised isikud:</h4>
             <tr>
                 <th>Nimi</th>
                 <th>Isikukood</th>
@@ -56,6 +57,33 @@
                     <td><button><a href="{{ url_for('company_data_view', id=person['companies'][0]['id'])}}">Vaata</a></button></td>
                 </tr>
                     {% for company in person['companies'][1:] %}
+                        </tr>
+                            <td></td>
+                            <td></td>
+                            <td>{{ company['company_name'] }}</td>
+                            <td><button><a href="{{ url_for('company_data_view', id=company['id'])}}">Vaata</a></button></td>
+                        </tr>
+                    {% endfor %}
+            {% endfor %}
+        {% endif %}
+    </table>
+    <table>
+        {% if legal_people | length != 0 %}
+            <h4>Juriidilised isikud:</h4>
+            <tr>
+                <th>Ettevõtte imi</th>
+                <th>Registrikood</th>
+                <th>Ettevõtted</th>
+                <th></th>
+            </tr>
+            {% for legal_person in legal_people %}
+                <tr>
+                    <td>{{ legal_person['company_name'] }}</td>
+                    <td>{{ legal_person['registry_code'] }}</td>
+                    <td>{{ legal_person['companies'][0]['company_name'] }}</td>
+                    <td><button><a href="{{ url_for('company_data_view', id=legal_person['companies'][0]['id'])}}">Vaata</a></button></td>
+                </tr>
+                    {% for company in legal_person['companies'][1:] %}
                         </tr>
                             <td></td>
                             <td></td>

@@ -13,6 +13,7 @@
 {% endblock %}
 
 {% block form %}
+     <!-- This displays error messages if user has left a founder input empty while trying to add one. -->
     {% with messages = get_flashed_messages() %}
         {% if messages %}
             <ul class=flashes>
