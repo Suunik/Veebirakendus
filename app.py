@@ -10,6 +10,7 @@ database_name = 'database.db'
 # used in company founding form
 # need to keep all the founder data before submitting company data
 founder_data = []
+legal_founder_data = []
 
 
 @app.route('/', methods=["GET", "POST"])
@@ -21,29 +22,10 @@ def main_page():
     if request.method == "POST":
         # first get the IDs of all the companies and people that the search finds.
         search = dict(request.form)['search']
-        company_ids = []
-        people_ids = []
-        # find ids from numbers
-        if search.isnumeric():
-            if len(search) == 7:
-                company_ids = database.search_ids_from_numbers(database_name, search)
-            if len(search) == 11:
-                people_ids = database.search_ids_from_numbers(database_name, search)
-        # find ids from given characters
-        else:
-            company_ids = database.search_ids(database_name, search, 'company')
-            people_ids = database.search_ids(database_name, search, 'people')
-
-        # then make a list of all the companies and people
-        for company_id in company_ids:
-            companies.append(database.get_company_data(database_name, company_id))
-            legal_person_data = database.get_legal_person_data_from_id(database_name, company_id)
-            # dont display legal people that are not a shareholder in any companies
-            if not legal_person_data['companies']:
-                continue
-            legal_people.append(legal_person_data)
-        for person_id in people_ids:
-            people.append(database.get_person_data_from_id(database_name, person_id))
+        companies = database.search_engine(database_name, search, 'company')
+        people = database.search_engine(database_name, search, 'people')
+        legal_people = database.search_engine(database_name, search, 'company', True)
+        print(legal_people)
     return render_template("avaleht.html", companies=companies, people=people, search=search, legal_people=legal_people)
 
 
@@ -59,36 +41,24 @@ def company_founding_form():
     # used so that user can't set company founding date to future
     today_date = date.today()
     company_data = {}
+    legal_people = []
+    people = []
+    search = ""
     if request.method == "POST":
         data = dict(request.form)
-        # gather company data
+        # gather company data so the user doesnt have to type it again
         company_data['company_name'] = data['company_name']
         company_data['registry_code'] = data['registry_code']
         company_data['start_date'] = data['start_date']
         company_data['total_capital'] = data['total_capital']
+        # means that user wants to search for legal person
+        if data['search']:
+            search = dict(request.form)['search']
+            legal_people = database.search_engine(database_name, search, 'company')
+            people = database.search_engine(database_name, search, 'people')
 
-        # means that user wants to submit the form
-        if 'submit' in data.keys():
-            # first check if total founder share is the same as company total capital
-            total_founder_share = 0
-            for founder in founder_data:
-                total_founder_share += int(founder['capital_share'])
-            # if not, flash an error
-            if total_founder_share != int(company_data['total_capital']):
-                flash('Osanike kapital ei ole võrdne ettevõtte kapitaliga')
-            elif not founder_data:
-                flash('Osanikud puuduvad')
-            # means that everything should be fine and we can add the data to database
-            else:
-                company_data['founders'] = founder_data
-                database.add_company_to_database(database_name, company_data)
-
-                # empty the list so users can add new companies if wished
-                company_data = {}
-                founder_data.clear()
-
-        # means that we got person info
-        else:
+        # means that we got new person info
+        elif data['button'] == 'add_person':
             # check if all the inputs were done
             if data['first_name'] == "":
                 flash('Osaniku eesnimi puudu')
@@ -105,11 +75,53 @@ def company_founding_form():
                                      'id_code': data['id_code'],
                                      'capital_share': data['capital_share']})
 
+        # means that user wants to submit the form
+        elif data['button'] == 'submit':
+            # first check if total founder share is the same as company total capital
+            total_founder_share = 0
+            for founder in founder_data:
+                total_founder_share += int(founder['capital_share'])
+            for legal_founder in legal_founder_data:
+                total_founder_share += int(legal_founder['capital_share'])
+            # if not, flash an error
+            if total_founder_share != int(company_data['total_capital']):
+                flash('Osanike kapital ei ole võrdne ettevõtte kapitaliga')
+            elif not founder_data and not legal_founder_data:
+                flash('Osanikud puuduvad')
+            # means that everything should be fine and we can add the data to database
+            else:
+                company_data['founders'] = founder_data
+                company_data['legal_founders'] = legal_founder_data
+                database.add_company_to_database(database_name, company_data)
+
+                # empty the list so users can add new companies if wished
+                company_data = {}
+                founder_data.clear()
+                legal_founder_data.clear()
+
+        # means that user wants to add company from the database into list
+        elif 'company_name' in eval(data['button']).keys():
+            legal_person_data = eval(data['button'])
+            legal_person_data['capital_share'] = data['legal_person_capital']
+            print(legal_person_data)
+            legal_founder_data.append(legal_person_data)
+        # means that user wants to add a person from the database into list
+        elif 'first_name' in eval(data['button']).keys():
+            person_data = eval(data['button'])
+            founder_data.append({'first_name': person_data['first_name'],
+                                 'last_name': person_data['last_name'],
+                                 'id_code': person_data['id_code'],
+                                 'capital_share': data['person_capital']})
+
+
     return render_template("Osaühingu_asutamise_vorm.html",
                            company_data=company_data,
                            person_data=founder_data,
-                           today_date=today_date)
-
+                           legal_person_data=legal_founder_data,
+                           legal_people=legal_people,
+                           today_date=today_date,
+                           people=people,
+                           search=search)
 
 if __name__ == '__main__':
     app.run()

@@ -23,6 +23,7 @@
     {% else %}
         <input name="search" class="search" type="text" autocomplete="off" placeholder={{ search }}><br>
     {% endif %}
+
     <table>
         {% if companies | length != 0 %}
             <h4>Ettevõtted:</h4>
@@ -40,6 +41,7 @@
             {% endfor %}
         {% endif %}
     </table>
+
     <table>
         {% if people | length != 0 %}
             <h4>Füüsilised isikud:</h4>
@@ -67,11 +69,12 @@
             {% endfor %}
         {% endif %}
     </table>
+
     <table>
         {% if legal_people | length != 0 %}
             <h4>Juriidilised isikud:</h4>
             <tr>
-                <th>Ettevõtte imi</th>
+                <th>Ettevõtte nimi</th>
                 <th>Registrikood</th>
                 <th>Ettevõtted</th>
                 <th></th>
@@ -94,5 +97,6 @@
             {% endfor %}
         {% endif %}
     </table>
+
     </form>
 {% endblock %}

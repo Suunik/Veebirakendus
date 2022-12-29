@@ -201,6 +201,39 @@ def search_ids(database_name: str, search: str, table: str):
     return id_list
 
 
+def search_engine(database_name: str, search: str, table: str, legal_person_search=False):
+    """Get a list of data from database with given search string."""
+    result_ids = []
+    result_list = []
+    # find ids from numbers
+    if search.isnumeric():
+        if len(search) == 7 and table == 'company':
+            result_ids = search_ids_from_numbers(database_name, search)
+        if len(search) == 11 and table == 'people':
+            result_ids = search_ids_from_numbers(database_name, search)
+    # find ids from given characters
+    else:
+        result_ids = search_ids(database_name, search, table)
+
+    # then make a list of all the companies and people
+    if table == 'company':
+        for company_id in result_ids:
+            if not legal_person_search:
+                result_list.append(get_company_data(database_name, company_id))
+                continue
+
+            # if we are looking for legal person data (not all companies are shareholders in a company)
+            legal_person_data = get_legal_person_data_from_id(database_name, company_id)
+            # dont display legal people that are not a shareholder in any companies
+            if not legal_person_data['companies']:
+                continue
+            result_list.append(legal_person_data)
+    if table == 'people':
+        for people_id in result_ids:
+            result_list.append(get_person_data_from_id(database_name, people_id))
+    return result_list
+
+
 def search_ids_from_numbers(database_name: str, search: str):
     """
     Get companies or persons id from given search string(numbers).
@@ -278,7 +311,7 @@ def get_legal_person_data_from_id(database_name: str, legal_person_id: int):
     # get all the companies person is shareholder in
     shareholder_data = get_shareholder_data(database_name, legal_person_id, True)
     # add it to a dict
-    legal_person_data = {'company_name': data[0][0], 'registry_code': data[0][2], 'companies': shareholder_data}
+    legal_person_data = {'company_name': data[0][0], 'registry_code': data[0][1], 'companies': shareholder_data}
     return legal_person_data
 
 
@@ -304,10 +337,13 @@ def get_company_data(database_name: str, company_id: int):
     data = {"company_name": company_data[0], "registry_code": company_data[1],
             "start_date": company_data[2], "total_capital": company_data[3], 'id': company_data[4]}
 
-
+    shareholders = {}
     # get shareholder data from shareholder table ( find person(s) tied with the company_id )
-    shareholders = conn.execute(f'SELECT * FROM shareholder WHERE company_id = ?',
-                        (company_id,)).fetchall()
+    shareholders = conn.execute(f'SELECT * FROM shareholder WHERE (company_id, legal_person )= (?,?)',
+                        (company_id, 0)).fetchall()
+
+    legal_shareholders = conn.execute(f'SELECT * FROM shareholder WHERE (company_id, legal_person )= (?,?)',
+                                          (company_id, 1)).fetchall()
 
     # finally get rowid's from shareholder data to get the information about shareholders.
     # add shareholder info to data dict as an additional dictionary.
@@ -324,8 +360,20 @@ def get_company_data(database_name: str, company_id: int):
         person_dict['founder'] = 'Jah' if person[3] == 1 else 'Ei'
         person_dict['share'] = person[2]
         shareholders_data.append(person_dict)
+
     data['shareholders'] = shareholders_data
 
+    legal_shareholders_data = []
+    for legal_person in legal_shareholders:
+        cursor.execute(f'SELECT * FROM company WHERE rowid = {legal_person[1]}')
+        legal_person_data = cursor.fetchall()
+        legal_person_dict = {}
+        legal_person_dict['company_name'] = legal_person_data[0][0]
+        legal_person_dict['registry_code'] = legal_person_data[0][0]
+        legal_person_dict['share'] = legal_person[2]
+        legal_person_dict['founder'] = 'Jah' if legal_person[3] == 1 else 'Ei'
+        legal_shareholders_data.append(legal_person_dict)
+    data['legal_shareholders'] = legal_shareholders_data
     conn.close()
     return data
 
@@ -351,25 +399,42 @@ def add_company_to_database(database_name: str, company_data: dict):
         cursor.execute("INSERT OR IGNORE INTO people VALUES (?,?,?)", person_tuple)
     conn.commit()
 
+    registry_codes = []
+    legal_person_capital_shares = []
+    for legal_person in company_data['legal_founders']:
+        registry_codes.append(legal_person['registry_code'])
+        legal_person_capital_shares.append(legal_person['capital_share'])
+
     # update shareholder data
 
     # get company rowid using company registry code ( should be unique for every company )
     cursor.execute(f"SELECT rowid FROM company WHERE registry_code = {company_data['registry_code']}")
     company_id = cursor.fetchone()
 
-    # get person rowid's using person id_code
-    # use different queries depending on the amound of id's
-    if len(id_codes) > 1:
-        cursor.execute(f"SELECT rowid FROM people WHERE id_code in {tuple(id_codes)}")
-    else:
-        cursor.execute(f"SELECT rowid FROM people WHERE id_code = {id_codes[0]}")
-    person_ids = cursor.fetchall()
+    if id_codes:
+        # get person rowid's using person id_code
+        # use different queries depending on the amound of id's
+        if len(id_codes) > 1:
+            cursor.execute(f"SELECT rowid FROM people WHERE id_code in {tuple(id_codes)}")
+        else:
+            cursor.execute(f"SELECT rowid FROM people WHERE id_code = {id_codes[0]}")
+        person_ids = cursor.fetchall()
+        # now add person data to shareholder table
+        for index, id in enumerate(person_ids):
+            shareholder_data = (int(company_id[0]), id[0], capital_shares[index], 1, 0)
+            cursor.execute(f"INSERT INTO shareholder VALUES (?,?,?,?,?)", shareholder_data)
 
-    for index, id in enumerate(person_ids):
-        shareholder_data = (int(company_id[0]), id[0], capital_shares[index], 1)
-        cursor.execute(f"INSERT INTO shareholder VALUES (?,?,?,?)", shareholder_data)
+    if registry_codes:
+        # get legal person rowid's using registry code
+        if len(registry_codes) > 1:
+            cursor.execute(f"SELECT rowid FROM company WHERE registry_code in {tuple(registry_codes)}")
+        else:
+            cursor.execute(f"SELECT rowid FROM company WHERE registry_code = {registry_codes[0]}")
+        legal_person_ids = cursor.fetchall()
+        # now add legal person data to shareholder table
+        for index, id in enumerate(legal_person_ids):
+            shareholder_data = (int(company_id[0]), id[0], capital_shares[index], 1, 1)
+            cursor.execute(f"INSERT INTO shareholder VALUES (?,?,?,?,?)", shareholder_data)
+
     conn.commit()
     conn.close()
-
-
-print(get_shareholder_data('database.db', 4, False))

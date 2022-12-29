@@ -31,20 +31,43 @@
     </table>
     <h4>Osanikud:</h4>
     <table>
-        <tr>
-            <th>Nimi</th>
-            <th>Isikukood</th>
-            <th>Osaniku suurus</th>
-            <th>Asutaja</th>
-        </tr>
-    {% for person in company['shareholders'] %}
-        <tr>
-            <td>{{ person['first_name'] }} {{ person['last_name'] }}</td>
-            <td>{{ person['id_code'] }}</td>
-            <td>{{ person['share'] }}€</td>
-            <td>{{ person['founder'] }}</td>
-        </tr>
-    {% endfor %}
+        {% if company['shareholders'] | length != 0 %}
+            <h3>Füüsilised isikud:</h3>
+                <tr>
+                    <th>Nimi</th>
+                    <th>Isikukood</th>
+                    <th>Osaniku suurus</th>
+                    <th>Asutaja</th>
+                </tr>
+                {% for person in company['shareholders'] %}
+                    <tr>
+                        <td>{{ person['first_name'] }} {{ person['last_name'] }}</td>
+                        <td>{{ person['id_code'] }}</td>
+                        <td>{{ person['share'] }}€</td>
+                        <td>{{ person['founder'] }}</td>
+                    </tr>
+                {% endfor %}
+        {% endif %}
+    </table>
+
+    <table>
+        {% if company['legal_shareholders'] | length != 0 %}
+            <h3>Juriidilised isikud:</h3>
+                <tr>
+                    <th>Nimi</th>
+                    <th>Registrikood</th>
+                    <th>Osaniku suurus</th>
+                    <th>Asutaja</th>
+                </tr>
+                {% for legal_person in company['legal_shareholders'] %}
+                <tr>
+                    <td>{{ legal_person['company_name'] }}</td>
+                    <td>{{ legal_person['registry_code'] }}</td>
+                    <td>{{ legal_person['share'] }}€</td>
+                    <td>{{ legal_person['founder'] }}</td>
+                </tr>
+            {% endfor %}
+        {% endif %}
     </table>
     </form>
 {% endblock %}
