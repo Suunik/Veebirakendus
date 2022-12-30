@@ -433,6 +433,7 @@ def add_company_to_database(database_name: str, company_data: dict):
         cursor.execute("INSERT OR IGNORE INTO people VALUES (?,?,?)", person_tuple)
     conn.commit()
 
+    print(f"capital shares: {capital_shares}")
     registry_codes = []
     legal_person_capital_shares = []
     for legal_person in company_data['legal_founders']:
@@ -444,6 +445,8 @@ def add_company_to_database(database_name: str, company_data: dict):
     # get company rowid using company registry code ( should be unique for every company )
     cursor.execute(f"SELECT rowid FROM company WHERE registry_code = {company_data['registry_code']}")
     company_id = cursor.fetchone()
+
+    print(f"company id: {company_id}")
 
     if id_codes:
         # get person rowid's using person id_code
@@ -465,12 +468,15 @@ def add_company_to_database(database_name: str, company_data: dict):
         else:
             cursor.execute(f"SELECT rowid FROM company WHERE registry_code = {registry_codes[0]}")
         legal_person_ids = cursor.fetchall()
+        print(f"legal person ids: {legal_person_ids}")
         # now add legal person data to shareholder table
         for index, id in enumerate(legal_person_ids):
-            shareholder_data = (int(company_id[0]), id[0], capital_shares[index], 1, 1)
+            shareholder_data = (int(company_id[0]), id[0], legal_person_capital_shares[index], 1, 1)
             cursor.execute(f"INSERT INTO shareholder VALUES (?,?,?,?,?)", shareholder_data)
 
     conn.commit()
     conn.close()
 
-create_database('database.db')
+company_data = {'company_name': 'kala', 'registry_code': '1234567', 'start_date': '1212-12-12', 'total_capital': '2500', 'founders': [], 'legal_founders': [{'company_name': 'Block, Fadel and Maggio', 'registry_code': 7654321, 'start_date': '11/04/1997', 'total_capital': 8299, 'id': 1, 'shareholders': [{'first_name': 'Michael', 'last_name': 'Suarez', 'id_code': 12345678901, 'founder': 'Jah', 'share': 6721}, {'first_name': 'Christopher', 'last_name': 'Osborn', 'id_code': 12345678902, 'founder': 'Jah', 'share': 1578}], 'legal_shareholders': [], 'capital_share': 2500}]}
+
+add_company_to_database('database.db', company_data)

@@ -69,12 +69,17 @@ def company_founding_form():
         elif 'add_button' in data_keys:
             # means that user is trying to add a legal person
             if data['legal_person_capital']:
-                legal_person_data = eval(data['add_button'])
-                legal_person_data['capital_share'] = int(data['legal_person_capital'])
-                legal_founder_data.append(legal_person_data)
+                if int(data['legal_person_capital']) < 1:
+                    flash('Osaniku algakpital on liiga väike')
+                else:
+                    legal_person_data = eval(data['add_button'])
+                    legal_person_data['capital_share'] = int(data['legal_person_capital'])
+                    legal_founder_data.append(legal_person_data)
             # means that user is trying to add physical person
-            elif data['person_capital']:
-                if int(data['person_capital']) < 1:
+            elif 'person_capital' in data_keys:
+                if not data['person_capital']:
+                    flash('Osanikul tuleb lisada osaniku osa suurus!')
+                elif int(data['person_capital']) < 1:
                     flash('Osaniku algkapital on liiga väike!')
                 else:
                     person_data = eval(data['add_button'])
