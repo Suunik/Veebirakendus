@@ -1,4 +1,5 @@
 import sqlite3
+import os
 import time
 from datetime import date
 import random
@@ -46,12 +47,14 @@ def create_people_table(database_name: str):
                         )""")
 
      # get a list of names from text files as tuples
+    directory = os.path.dirname(__file__)
+
     names = []
-    with open("first_names.txt") as f:
+    with open(f"{directory}\\first_names.txt") as f:
         for first_name in f:
             names.append(first_name.strip("\n"))
 
-    with open("last_names.txt") as f:
+    with open(f"{directory}\\last_names.txt") as f:
         index = 0
         id_code = 12345678901
         for last_name in f:
@@ -86,7 +89,8 @@ def create_company_table(database_name: str):
     registry_code = 7654321
     today = date.today().strftime("%d/%m/%Y")
 
-    with open("company_names.txt") as file:
+    directory = os.path.dirname(__file__)
+    with open(f"{directory}\company_names.txt") as file:
         for name in file:
             company_data.append((name.strip("\n"), registry_code, random_date("20/08/1991", today, random.random()), 0))
             registry_code += 1
@@ -468,3 +472,5 @@ def add_company_to_database(database_name: str, company_data: dict):
 
     conn.commit()
     conn.close()
+
+create_database('database.db')
