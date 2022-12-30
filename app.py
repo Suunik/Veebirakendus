@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, url_for, flash, redirect
 import database
-from datetime import date
+from datetime import date, datetime
 
 
 app = Flask(__name__)
@@ -11,6 +11,18 @@ database_name = 'database.db'
 # need to keep all the founder data before submitting company data
 founder_data = []
 legal_founder_data = []
+
+
+def get_total_shareholder_capital():
+    """Calculate total shareholder capital."""
+    # calculate total shareholder capital for later comparison
+    total_shareholder_capital = 0
+    for person in founder_data:
+        total_shareholder_capital += person['capital_share']
+    for legal_person in legal_founder_data:
+        total_shareholder_capital += legal_person['capital_share']
+
+    return total_shareholder_capital
 
 
 @app.route('/', methods=["GET", "POST"])
@@ -25,7 +37,6 @@ def main_page():
         companies = database.search_engine(database_name, search, 'company')
         people = database.search_engine(database_name, search, 'people')
         legal_people = database.search_engine(database_name, search, 'company', True)
-        print(legal_people)
     return render_template("avaleht.html", companies=companies, people=people, search=search, legal_people=legal_people)
 
 
@@ -46,82 +57,95 @@ def company_founding_form():
     search = ""
     if request.method == "POST":
         data = dict(request.form)
-        # gather company data so the user doesnt have to type it again
-        company_data['company_name'] = data['company_name']
-        company_data['registry_code'] = data['registry_code']
-        company_data['start_date'] = data['start_date']
-        company_data['total_capital'] = data['total_capital']
-        # means that user wants to search for legal person
+        data_keys = list(data.keys())
+        print(data)
+        # means that user is searching for shareholders
         if data['search']:
             search = dict(request.form)['search']
             legal_people = database.search_engine(database_name, search, 'company')
             people = database.search_engine(database_name, search, 'people')
 
-        # means that we got new person info
-        elif data['button'] == 'add_person':
-            # check if all the inputs were done
-            if data['first_name'] == "":
-                flash('Osaniku eesnimi puudu')
-            elif data['last_name'] == "":
-                flash('Osaniku perekonnanimi puudu')
-            elif data['id_code'] == "":
-                flash('Osaniku isikukood puudu')
-            elif data['capital_share'] == "":
-                flash('Osaniku osa puudu')
+        # means that user is trying to add a shareholder to the company
+        elif 'add_button' in data_keys:
+            # means that user is trying to add a legal person
+            if data['legal_person_capital']:
+                legal_person_data = eval(data['add_button'])
+                legal_person_data['capital_share'] = int(data['legal_person_capital'])
+                legal_founder_data.append(legal_person_data)
+            # means that user is trying to add physical person
+            elif data['person_capital']:
+                if int(data['person_capital']) < 1:
+                    flash('Osaniku algkapital on liiga väike!')
+                else:
+                    person_data = eval(data['add_button'])
+                    person_data['capital_share'] = int(data['person_capital'])
+                    founder_data.append(person_data)
+            # user must have forgotten to add capital share
             else:
-                # gather person_data and add it to the overall list
-                founder_data.append({'first_name': data['first_name'],
-                                     'last_name': data['last_name'],
-                                     'id_code': data['id_code'],
-                                     'capital_share': data['capital_share']})
+                flash("Osanikul tuleb lisada osaniku osa suurus!")
 
-        # means that user wants to submit the form
-        elif data['button'] == 'submit':
-            # first check if total founder share is the same as company total capital
-            total_founder_share = 0
-            for founder in founder_data:
-                total_founder_share += int(founder['capital_share'])
-            for legal_founder in legal_founder_data:
-                total_founder_share += int(legal_founder['capital_share'])
-            # if not, flash an error
-            if total_founder_share != int(company_data['total_capital']):
-                flash('Osanike kapital ei ole võrdne ettevõtte kapitaliga')
-            elif not founder_data and not legal_founder_data:
-                flash('Osanikud puuduvad')
-            # means that everything should be fine and we can add the data to database
+        # means that user is trying to submit the company founding form
+        elif 'button' in data_keys:
+            # gather all the data
+            company_data = {'company_name': data['company_name'], 'registry_code': data['registry_code'],
+                            'start_date': data['start_date'], 'total_capital': data['total_capital'],
+                            'founders': founder_data, 'legal_founders': legal_founder_data}
+
+            # check if every input field of company form is filled correctly
+
+            # length of the name
+            if len(company_data['company_name']) < 3:
+                flash('Ettevõtte nimi on liiga lühike!')
+            elif len(company_data['company_name']) > 100:
+                flash('Ettevõtte nimi on liiga pikk!')
+
+            # length on the registry code
+            elif len(company_data['registry_code']) < 7:
+                flash('Registrikood on liiga lühike!')
+            elif len(company_data['registry_code']) > 7:
+                flash('Registrikood on liiga pikk!')
+
+            # start date field must be filled
+            elif not company_data['start_date']:
+                flash('Asutamiskuupäev puudu!')
+            # start date must be smaller or equal to todays date
+            elif today_date < datetime.strptime(company_data['start_date'], '%Y-%m-%d').date():
+                flash('Ettevõtte asutamise kuupäev peab olema väiksem või võrdne tänase kuupäevaga!')
+
+            # total capital must be more than 2500€
+            elif int(company_data['total_capital']) < 2500:
+                flash('Ettevõtte algkapital peab olema vähemalt 2500€')
+
+            # must have at least one founder
+            elif not company_data['founders'] and not company_data['legal_founders']:
+                flash('Ettevõttel peab olema vähemalt üks osanik!')
+
+            # total capital must be equal to the sum of every shareholder capital
+            elif int(company_data['total_capital']) != get_total_shareholder_capital():
+                flash('Ettevõtte kogukapital peab olema võrdne osanike kapitalidega!')
+
+            # check if company already exists in database
+            elif database.check_if_company_name_exists(company_data['company_name']):
+                flash('Sellise nimega ettevõte on juba varem asutatud!')
+
+            elif database.check_if_company_registry_code_exists(company_data['registry_code']):
+                flash('Sellise registrikoodiga ettevõte on juba varem asutatud!')
+
+            # submit the form and add company to database
             else:
-                company_data['founders'] = founder_data
-                company_data['legal_founders'] = legal_founder_data
                 database.add_company_to_database(database_name, company_data)
-
-                # empty the list so users can add new companies if wished
-                company_data = {}
+                company_id = database.get_last_id_in_table(database_name, 'company')
+                # also empty the global variables
                 founder_data.clear()
                 legal_founder_data.clear()
-
-        # means that user wants to add company from the database into list
-        elif 'company_name' in eval(data['button']).keys():
-            legal_person_data = eval(data['button'])
-            legal_person_data['capital_share'] = data['legal_person_capital']
-            print(legal_person_data)
-            legal_founder_data.append(legal_person_data)
-        # means that user wants to add a person from the database into list
-        elif 'first_name' in eval(data['button']).keys():
-            person_data = eval(data['button'])
-            founder_data.append({'first_name': person_data['first_name'],
-                                 'last_name': person_data['last_name'],
-                                 'id_code': person_data['id_code'],
-                                 'capital_share': data['person_capital']})
-
+                return redirect(url_for('company_data_view', id=company_id))
 
     return render_template("Osaühingu_asutamise_vorm.html",
-                           company_data=company_data,
                            person_data=founder_data,
                            legal_person_data=legal_founder_data,
-                           legal_people=legal_people,
-                           today_date=today_date,
                            people=people,
-                           search=search)
+                           legal_people=legal_people)
+
 
 if __name__ == '__main__':
     app.run()

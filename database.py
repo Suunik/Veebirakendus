@@ -75,7 +75,7 @@ def create_company_table(database_name: str):
 
     cursor.execute("DROP TABLE IF EXISTS company")
     cursor.execute("""CREATE TABLE company (
-                                company_name TEXT,
+                                company_name TEXT COLLATE NOCASE,
                                 registry_code INTEGER,
                                 start_date DATE,
                                 total_capital INTEGER,
@@ -181,6 +181,37 @@ def create_database(database_name: str):
     add_company_total_capital()
 
 
+def get_last_id_in_table(database_name: str, table_name: str):
+    """Return the last rowid in company table."""
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT rowid FROM {table_name} ORDER BY rowid DESC LIMIT 1;")
+    return cursor.fetchone()
+
+
+def check_if_company_name_exists(company_name: str):
+    "Check if there is a company with the same name or registry code in database."
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT * FROM company WHERE company_name = ?", (company_name,))
+    companies = cursor.fetchall()
+
+    return companies
+
+
+def check_if_company_registry_code_exists(registry_code: str):
+    "Check if there is a company with the same name or registry code in database."
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT * FROM company WHERE registry_code = ?", (registry_code,))
+    companies = cursor.fetchall()
+
+    return companies
+
+
 def search_ids(database_name: str, search: str, table: str):
     """Get companies or persons id from given search string inside given table."""
     conn = sqlite3.connect(database_name)
@@ -199,39 +230,6 @@ def search_ids(database_name: str, search: str, table: str):
     for id in data:
         id_list.append(id[0])
     return id_list
-
-
-def search_engine(database_name: str, search: str, table: str, legal_person_search=False):
-    """Get a list of data from database with given search string."""
-    result_ids = []
-    result_list = []
-    # find ids from numbers
-    if search.isnumeric():
-        if len(search) == 7 and table == 'company':
-            result_ids = search_ids_from_numbers(database_name, search)
-        if len(search) == 11 and table == 'people':
-            result_ids = search_ids_from_numbers(database_name, search)
-    # find ids from given characters
-    else:
-        result_ids = search_ids(database_name, search, table)
-
-    # then make a list of all the companies and people
-    if table == 'company':
-        for company_id in result_ids:
-            if not legal_person_search:
-                result_list.append(get_company_data(database_name, company_id))
-                continue
-
-            # if we are looking for legal person data (not all companies are shareholders in a company)
-            legal_person_data = get_legal_person_data_from_id(database_name, company_id)
-            # dont display legal people that are not a shareholder in any companies
-            if not legal_person_data['companies']:
-                continue
-            result_list.append(legal_person_data)
-    if table == 'people':
-        for people_id in result_ids:
-            result_list.append(get_person_data_from_id(database_name, people_id))
-    return result_list
 
 
 def search_ids_from_numbers(database_name: str, search: str):
@@ -254,7 +252,6 @@ def search_ids_from_numbers(database_name: str, search: str):
         return
     data = cursor.fetchall()
 
-    print(data)
     id_list = []
     for id in data:
         id_list.append(id[0])
@@ -376,6 +373,39 @@ def get_company_data(database_name: str, company_id: int):
     data['legal_shareholders'] = legal_shareholders_data
     conn.close()
     return data
+
+
+def search_engine(database_name: str, search: str, table: str, legal_person_search=False):
+    """Get a list of data from database with given search string."""
+    result_ids = []
+    result_list = []
+    # find ids from numbers
+    if search.isnumeric():
+        if len(search) == 7 and table == 'company':
+            result_ids = search_ids_from_numbers(database_name, search)
+        if len(search) == 11 and table == 'people':
+            result_ids = search_ids_from_numbers(database_name, search)
+    # find ids from given characters
+    else:
+        result_ids = search_ids(database_name, search, table)
+
+    # then make a list of all the companies and people
+    if table == 'company':
+        for company_id in result_ids:
+            if not legal_person_search:
+                result_list.append(get_company_data(database_name, company_id))
+                continue
+
+            # if we are looking for legal person data (not all companies are shareholders in a company)
+            legal_person_data = get_legal_person_data_from_id(database_name, company_id)
+            # dont display legal people that are not a shareholder in any companies
+            if not legal_person_data['companies']:
+                continue
+            result_list.append(legal_person_data)
+    if table == 'people':
+        for people_id in result_ids:
+            result_list.append(get_person_data_from_id(database_name, people_id))
+    return result_list
 
 
 def add_company_to_database(database_name: str, company_data: dict):

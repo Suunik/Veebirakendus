@@ -25,67 +25,40 @@
     {% endwith %}
 
     <form method="post" id="company_data">
-
          <!-- this is for company data-->
         <label for="company_name" class="input-label">Osaühingu nimi:</label><br>
-        <input type="text" name="company_name" value="{{ company_data['company_name'] }}"
-               required minlength="3" maxlength="100"><br>
+        <input type="text" name="company_name" value="{{ request.form['company_name'] }}"><br>
 
         <label for="registry_code" class="input-label">Registrikood:</label><br>
-        <input type="number" name="registry_code" value="{{ company_data['registry_code'] }}"
-               required min="1000000" max="9999999"><br>
+        <input type="number" name="registry_code" value="{{ request.form['registry_code'] }}"><br>
 
         <label for="start_date" class="input-label">Asutamise kuupäev:</label><br>
-        <input type="date" name="start_date" value="{{ company_data['start_date'] }}"
-               required max="{{ today_date }}"><br>
+        <input type="date" name="start_date" value="{{ request.form['start_date'] }}"><br>
 
-        <label for="total_capital" class="input-label">Kogukapitali suurus:</label><br>
-        <input type="number" name="total_capital" value="{{ company_data['total_capital'] }}"
-               required min="2500"><br>
-
-        <!-- this is for making new person in database -->
-        <h4>Loo uus füüsiline isik:</h4>
-
-        <label for="first_name" class="input-label">Eesnimi:</label><br>
-        <input type="text" name="first_name" minlength="3"><br>
-
-        <label for="last_name" class="input-label">Perekonnanimi:</label><br>
-        <input type="text" name="last_name" minlength="3"><br>
-
-        <label for="id_code" class="input-label">Isikukood:</label><br>
-        <input type="number" name="id_code" min="10000000000" max="99999999999"><br>
-
-        <label for="capital_share" class="input-label">Osaniku osa suurus:</label><br>
-        <input type="number" name="capital_share" min="1"><br>
-
-        <button name="button" type="submit" value="add_person">Lisa füüsiline isik</button><br>
+        <label for="total_capital" class="input-label">Algkapitali suurus:</label><br>
+        <input type="number" name="total_capital" value="{{ request.form['total_capital'] }}"><br>
 
         <!-- this is for searching persons or companies already in database -->
         <h4>Otsi juriidiline või füüsiline isik</h4>
-        {% if search == "" %}
-            <input name="search" class="search" type="text"
-                   autocomplete="off"
-                   placeholder="Sisestage ettevõtte nimi või registrikood"><br>
-        {% else %}
-            <input name="search" class="search" type="text" autocomplete="off" placeholder={{ search }}><br>
-        {% endif %}
+        <input name="search" class="search" type="text" autocomplete="off"
+               placeholder="Sisestage ettevõtte nimi või registrikood"><br>
 
         <!-- this is for showing search results ( people ) -->
         <table>
             {% if people | length != 0 %}
                 <h4>Füüsilised isikud:</h4>
+                <h4>Lisa osaniku osa suurus!</h4>
+                <td><input type="number" name="person_capital" min="1"></td>
                 <tr>
                     <th>Nimi</th>
                     <th>Isikukood</th>
-                    <th>Osaniku osa suurus</th>
                     <th></th>
                 </tr>
                 {% for person in people %}
                     <tr>
                         <td>{{ person['first_name'] }} {{ person['last_name'] }}</td>
                         <td>{{ person['id_code'] }}</td>
-                        <td><input type="number" name="person_capital" min="1"></td>
-                        <td><button name="button" value="{{ person }}">Lisa füüsiline isik</button></td>
+                        <td><button name="add_button" value="{{ person }}">Lisa füüsiline isik</button></td>
                     </tr>
                 {% endfor %}
             {% endif %}
@@ -95,28 +68,30 @@
         <table>
             {% if legal_people | length != 0 %}
                 <h4>Juriidilised isikud:</h4>
+                <h4>Lisa osaniku osa suurus!</h4>
+                <td><input type="number" name="legal_person_capital" min="1"></td>
                 <tr>
                     <th>Ettevõtte nimi</th>
                     <th>Registrikood</th>
-                    <th>Osaniku osa suurus</th>
                     <th></th>
                 </tr>
                 {% for legal_person in legal_people %}
                     <tr>
                         <td>{{ legal_person['company_name'] }}</td>
                         <td>{{ legal_person['registry_code'] }}</td>
-                        <td><input type="number" name="legal_person_capital" min="1"></td>
-                        <td><button name="button" value="{{ legal_person }}">Lisa Juriidiline isik</button></td>
+                        <td><button name="add_button" value="{{ legal_person }}">Lisa Juriidiline isik</button></td>
                     </tr>
                 {% endfor %}
             {% endif %}
         </table>
+    </form>
 
-        <!-- this is for showing people and legal people already subimtted as shareholders -->
-        <h4>Osanikud:</h4>
-        <table>
-            {% if person_data | length != 0 %}
-                <h3>Füüsilised isikud:</h3>
+    <!-- this is for showing people and legal people already subimtted as shareholders -->
+    <h4>Osanikud:</h4>
+
+    <table>
+        {% if person_data | length != 0 %}
+            <h3>Füüsilised isikud:</h3>
                 <tr>
                     <th>Eesnimi</th>
                     <th>Perekonnanimi</th>
@@ -131,12 +106,12 @@
                             <td>{{ person['capital_share'] }}€</td>
                         </tr>
                     {% endfor %}
-            {% endif %}
-        </table>
+        {% endif %}
+    </table>
 
-        <table>
-            {% if legal_person_data | length != 0 %}
-                <h3>Juriidilised isikud:</h3>
+    <table>
+        {% if legal_person_data | length != 0 %}
+            <h3>Juriidilised isikud:</h3>
                 <tr>
                     <th>Juriidilise isiku nimi</th>
                     <th>Regitrikood</th>
@@ -149,9 +124,8 @@
                             <td>{{ legal_person['capital_share'] }}€</td>
                         </tr>
                     {% endfor %}
-            {% endif %}
-        </table>
-    </form>
+        {% endif %}
+    </table>
     <!-- This sends the final company data and "submit" key to the flask application -->
     <!-- So we can add the data to database -->
     <button type="submit" form="company_data" name="button" value="submit">Asuta osaühing</button>
