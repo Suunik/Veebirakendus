@@ -10,11 +10,11 @@ Terminalis tuleb kirjutada command `py -m pip install flask`
 Command tõmbab flaski webframe mis on vajalik veebirakenduse käivitamiseks.
 
 Siis tuleks andmebaas luua.
-Selleks tuleks avada create database fail kirjutades commandi reale `py /file/location` ( Näiteks: "D:\Programmid\Veebirakendus-main\create_database.py" )
+Selleks tuleks avada create database fail kirjutades commandi reale `py \file\location` ( Näiteks: "D:\Programmid\Veebirakendus-main\create_database.py" )
 Avades peaks file looma veebirakenduse kausta databaasi kasutades kolme tekst faili. ( First_names, last_names ja company_names)
 
 Järgmiseks tuleb terminalis käskida pythonil avada pythoni file "app.py".
-Selleks tuleb kirjutada commandi reale `py /file/location` ( Näiteks: "D:\Programmid\Veebirakendus-main\app.py" )
+Selleks tuleb kirjutada commandi reale `py \file\location` ( Näiteks: "D:\Programmid\Veebirakendus-main\app.py" )
 
 Siis käivitatakse development server.
 Terminalis on kirjas ka aadress kus veebirakendust näeb. ( Näiteks http://127.0.0.1:5000 )
