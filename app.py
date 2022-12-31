@@ -58,7 +58,7 @@ def company_founding_form():
     if request.method == "POST":
         data = dict(request.form)
         data_keys = list(data.keys())
-        print(data)
+
         # means that user is searching for shareholders
         if data['search']:
             search = dict(request.form)['search']
