@@ -1,3 +1,5 @@
+import sqlite3
+
 from flask import Flask, render_template, request, url_for, flash, redirect
 import database
 from datetime import date, datetime
@@ -32,18 +34,29 @@ def main_page():
     legal_people = []
     search = ""
     if request.method == "POST":
-        # first get the IDs of all the companies and people that the search finds.
+        # get a connection to the database
+        conn = sqlite3.connect(database_name)
+        cursor = conn.cursor()
+
+        # get the IDs of all the companies and people that the search finds.
         search = dict(request.form)['search']
-        companies = database.search_engine(database_name, search, 'company')
-        people = database.search_engine(database_name, search, 'people')
-        legal_people = database.search_engine(database_name, search, 'company', True)
+        companies = database.search_engine(cursor, search, 'company')
+        people = database.search_engine(cursor, search, 'people')
+        legal_people = database.search_engine(cursor, search, 'company', True)
+
+        conn.close()
     return render_template("avaleht.html", companies=companies, people=people, search=search, legal_people=legal_people)
 
 
 @app.route('/Osaühingu_andmete_vaade', methods=['GET'])
 def company_data_view():
+    conn = sqlite3.connect(database_name)
+    cursor = conn.cursor()
+
     id = request.args.get('id')
-    company_data = database.get_company_data(database_name, id)
+    company_data = database.get_company_data(cursor, id)
+
+    conn.close
     return render_template("Osaühingu_andmete_vaade.html", company=company_data)
 
 
@@ -56,14 +69,17 @@ def company_founding_form():
     people = []
     search = ""
     if request.method == "POST":
+        conn = sqlite3.connect(database_name)
+        cursor = conn.cursor()
+
         data = dict(request.form)
         data_keys = list(data.keys())
 
         # means that user is searching for shareholders
         if data['search']:
             search = dict(request.form)['search']
-            legal_people = database.search_engine(database_name, search, 'company')
-            people = database.search_engine(database_name, search, 'people')
+            legal_people = database.search_engine(cursor, search, 'company')
+            people = database.search_engine(cursor, search, 'people')
 
         # means that user is trying to add a shareholder to the company
         elif 'add_button' in data_keys:
@@ -130,21 +146,23 @@ def company_founding_form():
                 flash('Ettevõtte kogukapital peab olema võrdne osanike kapitalidega!')
 
             # check if company already exists in database
-            elif database.check_if_company_name_exists(company_data['company_name']):
+            elif database.check_if_company_name_exists(cursor, company_data['company_name']):
                 flash('Sellise nimega ettevõte on juba varem asutatud!')
 
-            elif database.check_if_company_registry_code_exists(company_data['registry_code']):
+            elif database.check_if_company_registry_code_exists(cursor, company_data['registry_code']):
                 flash('Sellise registrikoodiga ettevõte on juba varem asutatud!')
 
             # submit the form and add company to database
             else:
-                database.add_company_to_database(database_name, company_data)
-                company_id = database.get_last_id_in_table(database_name, 'company')
+                database.add_company_to_database(cursor, company_data)
+                company_id = database.get_last_id_in_table(cursor, 'company')
+                conn.commit()
                 # also empty the global variables
                 founder_data.clear()
                 legal_founder_data.clear()
                 return redirect(url_for('company_data_view', id=company_id))
 
+        conn.close()
     return render_template("Osaühingu_asutamise_vorm.html",
                            person_data=founder_data,
                            legal_person_data=legal_founder_data,

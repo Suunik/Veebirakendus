@@ -28,16 +28,12 @@ def random_date(start, end, prop):
     return str_time_prop(start, end, '%d/%m/%Y', prop)
 
 
-def create_people_table(database_name: str):
+def create_people_table(cursor: sqlite3.Cursor):
     """
     Create person database with 100 persons inside it.
 
     This function requires two text files named "first_names.txt" and "last_names.txt"
     """
-    # get a connection to person database
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     cursor.execute("DROP TABLE IF EXISTS people")
     cursor.execute("""CREATE TABLE people(
                                     first_name TEXT,
@@ -63,19 +59,13 @@ def create_people_table(database_name: str):
     # add names to the database
     cursor.executemany("INSERT INTO people VALUES (?,?,?)", names)
 
-    conn.commit()
-    conn.close()
 
-
-def create_company_table(database_name: str):
+def create_company_table(cursor: sqlite3.Cursor):
     """
     Create company database.
 
     This function needs "company_names.txt" file to get the company names from.
     """
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     cursor.execute("DROP TABLE IF EXISTS company")
     cursor.execute("""CREATE TABLE company (
                                 company_name TEXT COLLATE NOCASE,
@@ -96,15 +86,9 @@ def create_company_table(database_name: str):
             registry_code += 1
     cursor.executemany("""INSERT INTO company VALUES (?,?,?,?)""", company_data)
 
-    conn.commit()
-    conn.close()
 
-
-def create_shareholder_table(database_name: str):
+def create_shareholder_table(cursor: sqlite3.Cursor):
     """Create shareholder database."""
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     cursor.execute("""DROP TABLE IF EXISTS shareholder""")
     cursor.execute("""CREATE TABLE shareholder(
                             company_id INTEGER,
@@ -135,7 +119,6 @@ def create_shareholder_table(database_name: str):
         # insert data into the table
         for shareholder in shareholders:
             cursor.execute("INSERT INTO shareholder VALUES (?,?,?,?,?)", shareholder)
-        conn.commit()
 
         # add 2 to the person_id variable for each person inserted
         person_id += 2
@@ -144,14 +127,9 @@ def create_shareholder_table(database_name: str):
         if number_of_persons <= person_id:
             person_id = 1
 
-    conn.close()
 
-
-def add_company_total_capital():
+def add_company_total_capital(cursor: sqlite3.Cursor):
     """Add total capital to company table using data from shareholder table."""
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-
     cursor.execute("""SELECT DISTINCT company_id FROM shareholder""")
     shareholders = cursor.fetchall()
 
@@ -165,11 +143,9 @@ def add_company_total_capital():
         cursor.execute(f"UPDATE company SET total_capital = {total_capital} WHERE rowid = {company_id}")
 
         company_id += 1
-    conn.commit()
-    conn.close()
 
 
-def create_database(database_name: str):
+def create_database(cursor: sqlite3.Cursor):
     """
     Create database.
 
@@ -179,47 +155,36 @@ def create_database(database_name: str):
     Where shareholder table binds them together and holds information about which person
     is shareholder at which company with how much shares in euros.
     """
-    create_people_table(database_name)
-    create_company_table(database_name)
-    create_shareholder_table(database_name)
-    add_company_total_capital()
+    create_people_table(cursor)
+    create_company_table(cursor)
+    create_shareholder_table(cursor)
+    add_company_total_capital(cursor)
 
 
-def get_last_id_in_table(database_name: str, table_name: str):
+def get_last_id_in_table(cursor: sqlite3.Cursor, table_name: str):
     """Return the last rowid in company table."""
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     cursor.execute(f"SELECT rowid FROM {table_name} ORDER BY rowid DESC LIMIT 1;")
     return cursor.fetchone()
 
 
-def check_if_company_name_exists(company_name: str):
+def check_if_company_name_exists(cursor: sqlite3.Cursor, company_name: str):
     "Check if there is a company with the same name or registry code in database."
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-
     cursor.execute(f"SELECT * FROM company WHERE company_name = ?", (company_name,))
     companies = cursor.fetchall()
 
     return companies
 
 
-def check_if_company_registry_code_exists(registry_code: str):
+def check_if_company_registry_code_exists(cursor: sqlite3.Cursor, registry_code: str):
     "Check if there is a company with the same name or registry code in database."
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-
     cursor.execute(f"SELECT * FROM company WHERE registry_code = ?", (registry_code,))
     companies = cursor.fetchall()
 
     return companies
 
 
-def search_ids(database_name: str, search: str, table: str):
+def search_ids(cursor: sqlite3.Cursor, search: str, table: str):
     """Get companies or persons id from given search string inside given table."""
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
     # find out what table we are searching and execute the right command
     if table == 'company':
         cursor.execute(f"SELECT rowid FROM {table} WHERE company_name LIKE '%{search}%'")
@@ -236,16 +201,13 @@ def search_ids(database_name: str, search: str, table: str):
     return id_list
 
 
-def search_ids_from_numbers(database_name: str, search: str):
+def search_ids_from_numbers(cursor: sqlite3.Cursor, search: str):
     """
     Get companies or persons id from given search string(numbers).
 
     7 numbers mean that we are looking for companyd ids
     11 number mean that we are looking for person ids
     """
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     # find out what table we are searching and execute the right command
     if len(search) == 7:
         cursor.execute(f"SELECT rowid FROM company WHERE registry_code = {search}")
@@ -262,11 +224,8 @@ def search_ids_from_numbers(database_name: str, search: str):
     return id_list
 
 
-def get_shareholder_data(database_name: str, shareholder_id: int, legal_person: bool):
+def get_shareholder_data(cursor: sqlite3.Cursor, shareholder_id: int, legal_person: bool):
     """Get all the companies the person is shareholder in."""
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     if not legal_person:
         cursor.execute(f"SELECT * FROM shareholder WHERE (shareholder_id, legal_person) = ({shareholder_id}, 0)")
     if legal_person:
@@ -278,7 +237,7 @@ def get_shareholder_data(database_name: str, shareholder_id: int, legal_person: 
         # means that it is a person not legal person and we can add the company to list
         dict_of_company = {}
         # get company data from the current company id
-        company_data = get_company_data(database_name, data[0])
+        company_data = get_company_data(cursor, data[0])
         # add company name and id to a dict
         dict_of_company['company_name'] = company_data['company_name']
         dict_of_company['id'] = company_data['id']
@@ -287,36 +246,32 @@ def get_shareholder_data(database_name: str, shareholder_id: int, legal_person: 
     return list_of_companies
 
 
-def get_person_data_from_id(database_name: str, person_id: int):
+def get_person_data_from_id(cursor: sqlite3.Cursor, person_id: int):
     """Get person name from person_id."""
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
     cursor.execute(f"SELECT * FROM people WHERE rowid={person_id}")
     # get the persons data
     data = cursor.fetchall()
     # get all the companies person is shareholder in
-    shareholder_data = get_shareholder_data(database_name, person_id, False)
+    shareholder_data = get_shareholder_data(cursor, person_id, False)
     # add it to a dict
     person_data = {'first_name': data[0][0], 'last_name': data[0][1],
                    'id_code': data[0][2], 'companies': shareholder_data}
     return person_data
 
 
-def get_legal_person_data_from_id(database_name: str, legal_person_id: int):
+def get_legal_person_data_from_id(cursor: sqlite3.Cursor, legal_person_id: int):
     """Get person name from person_id."""
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
     cursor.execute(f"SELECT * FROM company WHERE rowid={legal_person_id}")
     # get the persons data
     data = cursor.fetchall()
     # get all the companies person is shareholder in
-    shareholder_data = get_shareholder_data(database_name, legal_person_id, True)
+    shareholder_data = get_shareholder_data(cursor, legal_person_id, True)
     # add it to a dict
     legal_person_data = {'company_name': data[0][0], 'registry_code': data[0][1], 'companies': shareholder_data}
     return legal_person_data
 
 
-def get_company_data(database_name: str, company_id: int):
+def get_company_data(cursor: sqlite3.Cursor, company_id: int):
     """
     Get company data from given database name.
 
@@ -328,9 +283,6 @@ def get_company_data(database_name: str, company_id: int):
 
     Shareholders keys: first_name, last_name, id_code, founder
     """
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     # get company data from company table, make a dictionary with the data
     company_data = cursor.execute(f'SELECT *, rowid FROM company WHERE rowid = ?',
                         (company_id,)).fetchone()
@@ -340,10 +292,10 @@ def get_company_data(database_name: str, company_id: int):
 
     shareholders = {}
     # get shareholder data from shareholder table ( find person(s) tied with the company_id )
-    shareholders = conn.execute(f'SELECT * FROM shareholder WHERE (company_id, legal_person )= (?,?)',
+    shareholders = cursor.execute(f'SELECT * FROM shareholder WHERE (company_id, legal_person )= (?,?)',
                         (company_id, 0)).fetchall()
 
-    legal_shareholders = conn.execute(f'SELECT * FROM shareholder WHERE (company_id, legal_person )= (?,?)',
+    legal_shareholders = cursor.execute(f'SELECT * FROM shareholder WHERE (company_id, legal_person )= (?,?)',
                                           (company_id, 1)).fetchall()
 
     # finally get rowid's from shareholder data to get the information about shareholders.
@@ -375,48 +327,44 @@ def get_company_data(database_name: str, company_id: int):
         legal_person_dict['founder'] = 'Jah' if legal_person[3] == 1 else 'Ei'
         legal_shareholders_data.append(legal_person_dict)
     data['legal_shareholders'] = legal_shareholders_data
-    conn.close()
     return data
 
 
-def search_engine(database_name: str, search: str, table: str, legal_person_search=False):
+def search_engine(cursor: sqlite3.Cursor, search: str, table: str, legal_person_search=False):
     """Get a list of data from database with given search string."""
     result_ids = []
     result_list = []
     # find ids from numbers
     if search.isnumeric():
         if len(search) == 7 and table == 'company':
-            result_ids = search_ids_from_numbers(database_name, search)
+            result_ids = search_ids_from_numbers(cursor, search)
         if len(search) == 11 and table == 'people':
-            result_ids = search_ids_from_numbers(database_name, search)
+            result_ids = search_ids_from_numbers(cursor, search)
     # find ids from given characters
     else:
-        result_ids = search_ids(database_name, search, table)
+        result_ids = search_ids(cursor, search, table)
 
     # then make a list of all the companies and people
     if table == 'company':
         for company_id in result_ids:
             if not legal_person_search:
-                result_list.append(get_company_data(database_name, company_id))
+                result_list.append(get_company_data(cursor, company_id))
                 continue
 
             # if we are looking for legal person data (not all companies are shareholders in a company)
-            legal_person_data = get_legal_person_data_from_id(database_name, company_id)
+            legal_person_data = get_legal_person_data_from_id(cursor, company_id)
             # dont display legal people that are not a shareholder in any companies
             if not legal_person_data['companies']:
                 continue
             result_list.append(legal_person_data)
     if table == 'people':
         for people_id in result_ids:
-            result_list.append(get_person_data_from_id(database_name, people_id))
+            result_list.append(get_person_data_from_id(cursor, people_id))
     return result_list
 
 
-def add_company_to_database(database_name: str, company_data: dict):
+def add_company_to_database(cursor: sqlite3.Cursor, company_data: dict):
     """Add data to database"""
-    conn = sqlite3.connect(database_name)
-    cursor = conn.cursor()
-
     # first add company data to database
     company_tuple = (company_data['company_name'], company_data['registry_code'],
                      company_data['start_date'], company_data['total_capital'])
@@ -431,7 +379,6 @@ def add_company_to_database(database_name: str, company_data: dict):
         capital_shares.append(person['capital_share'])
         person_tuple = (person['first_name'], person['last_name'], person['id_code'])
         cursor.execute("INSERT OR IGNORE INTO people VALUES (?,?,?)", person_tuple)
-    conn.commit()
 
     registry_codes = []
     legal_person_capital_shares = []
@@ -470,6 +417,3 @@ def add_company_to_database(database_name: str, company_data: dict):
         for index, id in enumerate(legal_person_ids):
             shareholder_data = (int(company_id[0]), id[0], legal_person_capital_shares[index], 1, 1)
             cursor.execute(f"INSERT INTO shareholder VALUES (?,?,?,?,?)", shareholder_data)
-
-    conn.commit()
-    conn.close()
